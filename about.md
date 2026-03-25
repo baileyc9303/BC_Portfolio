@@ -1,35 +1,13 @@
-# About Me
-<!-- TIP:
-markdown is related to HTML, designed to be more human friendly; but you
-can also use html in markdown files, and markdown comments are HTML comments
-There are comments throught out this file (and will be in other assignments to)
-that are for you while you're working, but don't need to be visible in the final
-document.  Be sure to put your work, that you want graded *not* in a comment
--->
+# About the Project
 
-<!-- TODO:
-include a 3 sentence summary of the most important points you want me to
-remember from the following
--->
+This Stardew Valley Web Scraping project was done in the fall semester of 2024 for a Programming for Data Science course.
 
-## Bio
-<!-- TODO:
-include here anything you want me to know about you and anything that
-may help me understand your work in the course, for example:
-your name,
- your pronouns,
-favorite hobbies,
-career aspirations,
-why you're taking this class-->
+## What was the task?
 
+The objective of this project was to collect and structure data through web scraping. I gathered a number of different values from the Stardew Valley wiki, including villager information, their likes and what the player should gift each one.
 
+Using Python, and libraries such as pandas and seaborn, I was able to implement web scraping techniques in order to navigate and parse HTML content, clean the data and merge it into a structured and useable dataframe that is ready for analysis. 
 
-## Data Science, to me
+## Outcome
 
-<!-- TODO:
-define data science in your own words. -->
-
-
-<!-- TODO:  -->
-
-
+The final result was a clean and well-organized dataset that could be used for further analysis and visualization, such as showing what gifts are most optimal for each villager.

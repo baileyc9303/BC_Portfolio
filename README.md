@@ -1,3 +1,1 @@
-Thank you for viewing my portfolio!
-
-In this, you will be able to see a number of different projects and assignments I worked on between January 2023 and May 2026.
+This was a Project for a Programming with Data Course that show how COVID19 has impacted students. The Dataset collected from Kaggle is attached as well as the survey I collected from students in my class.

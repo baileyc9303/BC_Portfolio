@@ -1,7 +1,0 @@
-jupyter-book
-matplotlib
-numpy
-pyppeteer
-pandas
-seaborn
-jupytext

@@ -1,0 +1,260 @@
+---
+title: "Exam 1 - BC"
+output:
+  html_document: default
+  pdf_document: default
+date: "2026-03-04"
+---
+
+# 1. Research Question 1:
+
+Which species of bird showed the largest observation changes between the years 2020 and 2021 based on location?
+
+```{r load_data, echo=FALSE}
+
+library(tidyverse)
+
+# Load data
+recent_birds <- read_csv("https://tinyurl.com/recent-bird-subset")
+bird_info <- read_csv("bird_info.csv") # no matter what I did I couldn't load this data in so I had to use a local file, sorry if this messes anything up (I would not have been able to do this assignment otherwise).
+site_info <- read_csv("https://tinyurl.com/observation-site-info")
+
+site_info_unique <- site_info %>% distinct(loc_id, .keep_all = TRUE)
+
+# join the datasets together for one big dataset that is easier to use :D
+df <- recent_birds %>%
+  left_join(bird_info, by = "species_code") %>%
+  left_join(site_info_unique, by = "loc_id")
+```
+
+```{r summarize_species, echo=FALSE}
+
+# Summarise total counts per species each year
+species_trends <- df %>%
+  group_by(american_english_name, Year) %>%
+  summarise(total = sum(how_many, na.rm = TRUE), .groups = "drop")
+
+# since we are only interested in select bird species, we only want to view specific ones
+species_of_interest <- c("Northern Cardinal",
+                         "Blue Jay",
+                         "American Goldfinch",
+                         "American Robin",
+                         "House Sparrow",
+                         "Mourning Dove")
+
+site_of_interest <- "L981010"
+
+df %>%
+  filter(american_english_name %in% species_of_interest) %>%
+  group_by(loc_id == site_of_interest, american_english_name) %>%
+  summarise(n_years = n_distinct(Year)) %>%
+  filter(n_years >= 2) %>%
+  arrange(desc(n_years))
+
+species_trends_site <- df %>%
+  filter(american_english_name %in% species_of_interest) %>%
+  group_by(american_english_name, Year) %>%
+  summarise(total = sum(how_many, na.rm = TRUE))
+
+```
+
+```{r plot1, echo=FALSE}
+
+# line plot to show progression over the span of two years
+ggplot(species_trends_site,
+       aes(x = Year,
+           y = total,
+           group = american_english_name,
+           color = american_english_name)) +
+  geom_point(size = 3) +
+  geom_line() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Bird Counts At Site L981010",
+       x = "Year",
+       y = "Total Observations",
+       color = "Species") +
+  theme_minimal()
+
+```
+
+The plot shows the total number of observations for the select bird species between 2020 and 2021 at site L981010. Northern Cardinals seem to have the highest noticeable changes, while the other species have slower/less change rates. Overall, however, the House Sparrow has the most observations at this site in total while the American Robin has the least. In total, all species has an upward trend from 2020-2021 in observations at this site.
+
+```{r plot2, echo=FALSE}
+
+ggplot(species_trends_site, 
+       aes(x = factor(Year), y = total, fill = american_english_name)) +
+  geom_col(position = "dodge") +
+  labs(x = "Year", y = "Total Observations", fill = "Species")
+
+```
+
+This Bar chart confirms what the lineplot showed as well that the House sparrow has the most overall observations at this site and the American robin has the least. It also confirms that the Northern Cardinal has the highest observation change between 2020 and 2021 at this site.
+
+# Research Question 2: How does bird species diversity change across different habitats?
+
+For this question, i used the habitat data along with the bird species data. I calculated the species diversity at each site as well as grouped the habitat types. Then I computed the average of species diversity within each separate habitat as well as used anova. Lastyly, I provided a box plot to show my findings.
+
+```{r rq2, echo=FALSE}
+
+df_habitat <- df %>%
+  mutate(
+    habitat = case_when(
+      hab_residential == 1 ~ "Residential",
+      hab_dcid_woods == 1 ~ "Deciduous Forest",
+      hab_evgr_woods == 1 ~ "Evergreen Forest",
+      hab_mixed_woods == 1 ~ "Mixed Forest",
+      hab_agricultural == 1 ~ "Agricultural",
+      hab_marsh == 1 ~ "Marsh",
+      hab_swamp == 1 ~ "Swamp",
+      hab_park == 1 ~ "Park",
+      hab_water_fresh == 1 ~ "Freshwater",
+      hab_water_salt == 1 ~ "Saltwater"
+    )
+  )
+
+# calc species diversity
+site_diversity <- df_habitat %>%
+  group_by(loc_id, habitat) %>%
+  summarise(
+    species_richness = n_distinct(species_code)
+  )
+
+diversity_summary <- site_diversity %>%
+  group_by(habitat) %>%
+  summarise(
+    mean_richness = mean(species_richness),
+    sd_richness = sd(species_richness),
+    n_sites = n()
+  )
+
+diversity_summary
+
+# since I enjoy using anova I'm gonna use that here too to show if the differences are significant
+
+anova_model <- aov(species_richness ~ habitat, data = site_diversity)
+summary(anova_model)
+
+# box plot to visualize
+
+par(mfrow = c(1, 2))
+
+ggplot(site_diversity, aes(x = habitat, y = species_richness)) +
+  geom_boxplot(fill = "darkseagreen3") +
+  labs(
+    title = "Bird Species Diversity Across Habitat Types",
+    x = "Habitat Type",
+    y = "Species Richness"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+Based on my findings it appears that forest and residential habitats showed higher diversity than habitats such as marshes, swamps, etc. Based on the anova test as well, the p-value was less than 0.05 which means there is strong evidence that supports bird diversity differs depending on habitat type in this dataset.
+
+# Research Question 3: How does the housing density influence the number of birds that were observed?
+
+In order to examine this relationship, I used the combined dataset for my findings. I first filtered out any missing values, then calculated the total number of birds observed at head site using the how_many values. I also grpuped observations based on the housing density column. Lastly, I provided a visual of my findings.
+
+```{r rq3, echo=FALSE}
+
+# remove any NA values
+
+bird_counts <- df %>%
+  filter(!is.na(how_many))
+
+# calc birds observed at each site
+
+site_bird_totals <- df %>%
+  filter(!is.na(how_many), !is.na(housing_density)) %>%
+  group_by(loc_id, housing_density) %>%
+  summarise(
+    total_birds = sum(how_many, na.rm = TRUE)
+  )
+
+# housing summary
+
+housing_summary <- site_bird_totals %>%
+  group_by(housing_density) %>%
+  summarise(
+    mean_birds = mean(total_birds),
+    sd_birds = sd(total_birds),
+    n_sites = n()
+  )
+
+housing_summary
+
+calc_mean <- site_bird_totals %>%
+  group_by(housing_density) %>%
+  summarise(
+    mean_birds = mean(total_birds)
+  )
+
+# use a boxplot
+
+ggplot(calc_mean, aes(x = factor(housing_density,
+                              labels = c("Rural","Low","Suburban","Urban")),
+                   y = mean_birds)) +
+  geom_col(fill = "lightblue") +
+  labs(title = "Average Birds Observed by Housing Density",
+       x = "Housing Density",
+       y = "Mean Birds Observed") +
+  theme_minimal()
+
+```
+
+Based on the average birds observed, the Rural section has the highest average while urban has the lowest (low and suburban being in the middle). I believe this makes sense since birds don't typically flock to cities, except pigeons, the way they do to rural areas. It is interesting in my opinion that suburban sites, based on the table, has the most total sites, yet, it is still second to lowest in mean observations.
+
+# Research Question 4: Does the number and type of feeder influence the number of birds observed at a site?
+
+In order to approach this question I used the df to summarize birds observed per site again and used the feeder count columns to calculate the total feeders per site. Then I looked at how birds vary with total feeders and different feeder types. Lastly, of course, I provided a visual.
+
+```{r rq4, echo=FALSE}
+
+site_feeders <- df %>%
+  filter(!is.na(how_many)) %>%
+  group_by(loc_id) %>%
+  summarise(
+    total_birds = sum(how_many, na.rm = TRUE),
+    total_feeders = sum(
+      numfeeders_suet,
+      numfeeders_hanging,
+      numfeeders_tube,
+      numfeeders_platfrm,
+      numfeeders_water,
+      numfeeders_thistle,
+      numfeeders_fruit,
+      numfeeders_hopper,
+      numfeeders_other,
+      na.rm = TRUE
+    )
+  )
+
+site_feeders <- site_feeders %>%
+  mutate(feeder_bin = cut(
+    total_feeders,
+    breaks = c(-1, 1, 3, 5, Inf),
+    labels = c("0–1", "2–3", "4–5", "6+")
+  ))
+
+total_feeders_summary <- site_feeders %>%
+  group_by(feeder_bin) %>%
+  summarise(
+    mean_birds = mean(total_birds),
+    se_birds = sd(total_birds)/sqrt(n())
+  )
+
+ggplot(total_feeders_summary, aes(x = feeder_bin, y = mean_birds)) +
+  geom_col(fill = "pink") +
+  geom_errorbar(aes(ymin = mean_birds - se_birds,
+                    ymax = mean_birds + se_birds), width = 0.2) +
+  labs(
+    title = "Average Number of Birds by Total Feeders at Site",
+    x = "Total Feeders",
+    y = "Mean Birds Observed and Standard Error"
+  ) +
+  theme_minimal()
+
+```
+
+Based on the visuals, the number of total feeders does impact the number of bird observations. Looking at the chart, having 6+ feeders grealy increases the observations compared to 0-5, however, 0-1 seems to have more of an impact than 2-3 and 4-5. 

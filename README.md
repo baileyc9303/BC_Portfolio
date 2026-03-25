@@ -1,3 +1,1 @@
-Thank you for viewing my portfolio!
-
-In this, you will be able to see a number of different projects and assignments I worked on between January 2023 and May 2026.
+This project is for a course called Big Data Analysis. A large dataset containing information on bird species, bird sitings, etc was used. The objective was to come up with four research questions, clean the data and analyze.
